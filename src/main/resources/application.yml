@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: pedidos-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pedidos}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:123a}
+
+  jpa:
+    hibernate:
+      # ddl-auto=update sirve para arrancar rapido en desarrollo.
+      # En cuanto el modelo se estabilice, cambiar a "validate" y manejar
+      # las migraciones con Flyway o Liquibase.
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+server:
+  port: ${PORT:8080}
+
+# TODO fase 2: credenciales de Firebase Cloud Messaging para notificaciones
+# push cuando la app de Administracion esta cerrada o en segundo plano.
+# firebase:
+#   credentials-path: ${FCM_CREDENTIALS_PATH:}
