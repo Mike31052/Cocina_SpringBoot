@@ -1,18 +1,17 @@
 package com.negocio.pedidos.controller;
 
 import com.negocio.pedidos.model.Producto;
-import com.negocio.pedidos.repository.ProductoRepository;
+import com.negocio.pedidos.service.ProductoService;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -20,59 +19,56 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductoController {
 
-    private final ProductoRepository productoRepository;
+    private final ProductoService productoService;
 
     @GetMapping
-    public List<Producto> listar() {
-        return productoRepository.findByActivoTrue();
+    public Page<Producto> listar(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return productoService.listarActivos(page, size);
+    }
+
+    @GetMapping("/buscar")
+    public Page<Producto> buscar(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return productoService.buscar(q, page, size);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Producto crear(@Valid @RequestBody NuevoProductoRequest request) {
-        Producto producto = Producto.builder()
-            .nombre(request.nombre())
-            .categoria(request.categoria())
-            .costo(request.costo())
-            .precio(request.precio())
-            .activo(true)
-            .build();
-        return productoRepository.save(producto);
+        return productoService.crear(
+            request.nombre(),
+            request.categoria(),
+            request.costo(),
+            request.precio()
+        );
     }
 
     @PutMapping("/{id}")
     public Producto actualizar(
             @PathVariable UUID id, 
             @Valid @RequestBody ActualizarProductoRequest request) {
-        
-        Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Producto no encontrado con id: " + id));
-        
-        producto.setNombre(request.nombre());
-        producto.setCategoria(request.categoria());
-        producto.setCosto(request.costo());
-        producto.setPrecio(request.precio());
-        
-        return productoRepository.save(producto);
+        return productoService.actualizar(
+            id,
+            request.nombre(),
+            request.categoria(),
+            request.costo(),
+            request.precio()
+        );
     }
 
-    // "Eliminar" = desactivar, no borrar de verdad — así los pedidos ya
-    // hechos con este producto conservan su historial intacto.
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@PathVariable UUID id) {
-        Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + id));
-        producto.setActivo(false);
-        productoRepository.save(producto);
+        productoService.eliminar(id);
     }
     
     @PatchMapping("/{id}/reactivar")
     public Producto reactivar(@PathVariable UUID id) {
-        Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado: " + id));
-        producto.setActivo(true);
-        return productoRepository.save(producto);
+        return productoService.reactivar(id);
     }
 
     public record NuevoProductoRequest(
