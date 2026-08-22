@@ -58,6 +58,7 @@ public class PedidoService {
                 .cantidad(item.cantidad())
                 .precioUnitario(producto.getPrecio())
                 .costoUnitario(producto.getCosto())
+                .nota(item.nota())
                 .build();
 
             pedido.agregarDetalle(detalle);
@@ -122,7 +123,8 @@ public class PedidoService {
                 d.getProducto().getNombre(),
                 d.getCantidad(),
                 d.getPrecioUnitario(),
-                d.getCostoUnitario()
+                d.getCostoUnitario(),
+                d.getNota()
             ))
             .toList();
 

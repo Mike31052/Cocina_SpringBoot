@@ -40,4 +40,9 @@ public class PedidoDetalle {
 
     @Column(name = "costo_unitario", nullable = false, precision = 10, scale = 2)
     private BigDecimal costoUnitario;
+
+    // Nota opcional del vendedor para este producto dentro del pedido,
+    // ej. "sin salsa", "bien cocido".
+    @Column(length = 255)
+    private String nota;
 }

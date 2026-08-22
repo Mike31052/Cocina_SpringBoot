@@ -8,5 +8,6 @@ public record PedidoDetalleResponse(
     String nombreProducto,
     int cantidad,
     BigDecimal precioUnitario,
-    BigDecimal costoUnitario
+    BigDecimal costoUnitario,
+    String nota
 ) {}
