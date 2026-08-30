@@ -33,12 +33,18 @@ public class PedidoController {
         return pedidoService.bandeja(estado);
     }
 
+    // Usado por la app del Vendedor para ver los pedidos que el mismo levanto.
+    @GetMapping("/mios")
+    public List<PedidoResponse> misPedidos() {
+        return pedidoService.misPedidos();
+    }
+
     @PatchMapping("/{id}/estado")
     public PedidoResponse cambiarEstado(
         @PathVariable UUID id,
         @Valid @RequestBody CambiarEstadoRequest request
     ) {
-        return pedidoService.cambiarEstado(id, request.estado());
+        return pedidoService.cambiarEstado(id, request.estado(), request.metodoPago());
     }
 
     @GetMapping("/totales-hoy")

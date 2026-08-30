@@ -22,16 +22,54 @@ Queda escuchando en `http://localhost:8080`.
 
 ## Endpoints principales
 
-| Metodo | Ruta                          | Para que sirve                                  |
-|--------|-------------------------------|--------------------------------------------------|
-| POST   | /api/negocios                 | Registrar un negocio/cliente                      |
-| GET    | /api/negocios?buscar=texto    | Buscar negocio (pantalla "elegir negocio")         |
-| POST   | /api/productos                | Dar de alta un producto (nombre, costo, precio)    |
-| GET    | /api/productos                | Listar productos activos                           |
-| POST   | /api/pedidos                  | Crear pedido (lo usa la app Vendedor)              |
-| GET    | /api/pedidos?estado=RECIBIDO  | Bandeja de pedidos (lo usa Administracion)         |
-| PATCH  | /api/pedidos/{id}/estado      | Avanzar el estatus del pedido                      |
-| GET    | /api/pedidos/totales-hoy      | Ventas, costos y ganancia del dia                  |
+| Metodo | Ruta                          | Rol requerido       | Para que sirve                                  |
+|--------|-------------------------------|---------------------|--------------------------------------------------|
+| POST   | /api/auth/login                | público             | Login: regresa el token JWT y el rol del usuario  |
+| POST   | /api/negocios                 | autenticado          | Registrar un negocio/cliente                      |
+| GET    | /api/negocios?buscar=texto    | autenticado          | Buscar negocio (pantalla "elegir negocio")         |
+| POST   | /api/productos                | ADMINISTRADOR        | Dar de alta un producto (nombre, costo, precio)    |
+| GET    | /api/productos                | autenticado          | Listar productos activos                           |
+| POST   | /api/pedidos                  | autenticado          | Crear pedido (lo usa la app Vendedor)              |
+| GET    | /api/pedidos?estado=RECIBIDO  | ADMINISTRADOR        | Bandeja de pedidos (lo usa Administracion)         |
+| GET    | /api/pedidos/mios              | VENDEDOR             | Pedidos levantados por el vendedor autenticado    |
+| PATCH  | /api/pedidos/{id}/estado      | ADMINISTRADOR        | Avanzar el estatus del pedido (y/o fijar metodoPago) |
+| GET    | /api/pedidos/totales-hoy      | ADMINISTRADOR        | Ventas, costos y ganancia del dia                  |
+
+Todas las rutas autenticadas esperan el header `Authorization: Bearer <token>`
+que regresa `/api/auth/login`.
+
+## Login y usuarios (sin pantalla todavia)
+
+No hay endpoint ni pantalla para crear usuarios: se insertan directo en la
+tabla `usuarios` (Hibernate la crea sola con `ddl-auto: update` en cuanto
+levantas el backend). Columnas: `username`, `password` (hash BCrypt, nunca
+texto plano), `nombre`, `rol` (`VENDEDOR` o `ADMINISTRADOR`), `activo`.
+
+1. Genera el hash del password que le vas a dar al empleado:
+   ```bash
+   mvn spring-boot:run "-Dspring-boot.run.arguments=--generar-hash=09dst0095d"
+   ```
+   Copia el hash que imprime (algo como `$2a$10$...`).
+
+2. Insértalo en la base de datos:
+   ```sql
+   INSERT INTO usuarios (id, username, password, nombre, rol, activo, creado_en)
+   VALUES (gen_random_uuid(), 'maria', '$2a$10$...pegaAquiElHash...', 'María', 'VENDEDOR', true, now());
+   ```
+
+3. Entrega usuario y password (en texto plano) a la empleada. Con eso ya
+   puede entrar a la app y ve solo las pantallas de su rol.
+
+## Metodo de pago
+
+`Pedido` tiene un campo `metodoPago` (`EFECTIVO` o `TRANSFERENCIA`), opcional.
+El vendedor lo puede mandar desde `POST /api/pedidos`, pero el pedido se
+queda igual en `RECIBIDO`. Administracion lo puede fijar o corregir al
+mandar `PATCH /api/pedidos/{id}/estado` con `metodoPago` en el body. Si
+el estado nuevo es `ENTREGADO_Y_PAGADO` y el pedido no tiene metodo de
+pago (ni ya guardado ni en esta misma peticion), el backend responde
+400 — es obligatorio saber cómo se cobró antes de marcarlo como pagado.
+Esto solo guarda el dato: no se procesa ningún cobro ni transferencia real.
 
 ## Tiempo real
 

@@ -41,6 +41,23 @@ public class Pedido {
     @Builder.Default
     private EstadoPedido estado = EstadoPedido.RECIBIDO;
 
+    /**
+     * Solo se guarda el dato de cómo se cobró; puede quedar en null si
+     * el vendedor todavía no lo elige, y se puede fijar o corregir hasta
+     * el momento en que Administración marca el pedido como pagado.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "metodo_pago", length = 20)
+    private MetodoPago metodoPago;
+
+    /**
+     * Vendedor que levantó el pedido. Nullable para no romper pedidos
+     * creados antes de que existiera el login.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creado_por")
+    private Usuario creadoPor;
+
     @Column(name = "creado_en", nullable = false, updatable = false)
     private Instant creadoEn;
 

@@ -21,6 +21,13 @@ spring:
 server:
   port: ${PORT:8080}
 
+jwt:
+  # En produccion define JWT_SECRETO como variable de entorno (Railway,
+  # etc). Debe ser una cadena larga y aleatoria; esta de aqui es solo
+  # para arrancar en desarrollo.
+  secreto: ${JWT_SECRETO:cambia-esto-por-un-secreto-largo-123456}
+  expiracion-horas: ${JWT_EXPIRACION_HORAS:12}
+
 # TODO fase 2: credenciales de Firebase Cloud Messaging para notificaciones
 # push cuando la app de Administracion esta cerrada o en segundo plano.
 # firebase:

@@ -5,15 +5,21 @@ import com.negocio.pedidos.model.*;
 import com.negocio.pedidos.repository.NegocioRepository;
 import com.negocio.pedidos.repository.PedidoRepository;
 import com.negocio.pedidos.repository.ProductoRepository;
+import com.negocio.pedidos.security.UsuarioPrincipal;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +51,8 @@ public class PedidoService {
             .negocio(negocio)
             .idLocalCelular(request.idLocalCelular())
             .estado(EstadoPedido.RECIBIDO)
+            .metodoPago(request.metodoPago())
+            .creadoPor(usuarioAutenticadoOrNull())
             .build();
 
         for (ItemPedidoRequest item : request.items()) {
@@ -71,9 +79,22 @@ public class PedidoService {
     }
 
     @Transactional
-    public PedidoResponse cambiarEstado(UUID pedidoId, EstadoPedido nuevoEstado) {
+    public PedidoResponse cambiarEstado(UUID pedidoId, EstadoPedido nuevoEstado, MetodoPago metodoPago) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
             .orElseThrow(() -> new EntityNotFoundException("Pedido no encontrado: " + pedidoId));
+
+        if (metodoPago != null) {
+            pedido.setMetodoPago(metodoPago);
+        }
+
+        // Al marcar como pagado, el metodo de pago ya debe estar definido
+        // (el vendedor lo pudo elegir desde el inicio, o lo manda ahora
+        // Administracion en esta misma peticion).
+        if (nuevoEstado == EstadoPedido.ENTREGADO_Y_PAGADO && pedido.getMetodoPago() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Debes indicar el método de pago para marcar el pedido como pagado."
+            );
+        }
 
         pedido.setEstado(nuevoEstado);
         Pedido actualizado = pedidoRepository.save(pedido);
@@ -92,9 +113,31 @@ public class PedidoService {
         return pedidos.stream().map(this::aRespuesta).toList();
     }
 
+    /**
+     * Pedidos levantados por el vendedor autenticado (pantalla "Mis pedidos").
+     */
+    @Transactional(readOnly = true)
+    public List<PedidoResponse> misPedidos() {
+        Usuario usuario = usuarioAutenticadoOrNull();
+        if (usuario == null) {
+            return List.of();
+        }
+        return pedidoRepository.findByCreadoPorOrderByCreadoEnDesc(usuario).stream()
+            .map(this::aRespuesta)
+            .toList();
+    }
+
+    private Usuario usuarioAutenticadoOrNull() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof UsuarioPrincipal principal)) {
+            return null;
+        }
+        return principal.getUsuario();
+    }
+
     @Transactional(readOnly = true)
     public TotalesDelDiaResponse totalesDelDia() {
-        ZoneId zona = ZoneId.systemDefault();
+        ZoneId zona = ZoneOffset.UTC; 
         Instant inicioDelDia = LocalDate.now(zona).atStartOfDay(zona).toInstant();
         Instant ahora = Instant.now();
 
@@ -137,6 +180,8 @@ public class PedidoService {
             pedido.getNegocio().getId(),
             pedido.getNegocio().getNombre(),
             pedido.getEstado(),
+            pedido.getMetodoPago(),
+            pedido.getCreadoPor() != null ? pedido.getCreadoPor().getUsername() : null,
             pedido.getCreadoEn(),
             pedido.getActualizadoEn(),
             items,

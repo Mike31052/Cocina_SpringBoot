@@ -2,6 +2,7 @@ package com.negocio.pedidos.repository;
 
 import com.negocio.pedidos.model.EstadoPedido;
 import com.negocio.pedidos.model.Pedido;
+import com.negocio.pedidos.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
@@ -22,4 +23,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     List<Pedido> findByEstadoAndActualizadoEnBetween(
         EstadoPedido estado, Instant desde, Instant hasta
     );
+
+    // Usado por la pantalla "Mis pedidos" del vendedor.
+    List<Pedido> findByCreadoPorOrderByCreadoEnDesc(Usuario creadoPor);
 }

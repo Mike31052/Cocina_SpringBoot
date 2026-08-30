@@ -1,6 +1,7 @@
 package com.negocio.pedidos.dto;
 
 import com.negocio.pedidos.model.EstadoPedido;
+import com.negocio.pedidos.model.MetodoPago;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -12,6 +13,8 @@ public record PedidoResponse(
     UUID negocioId,
     String nombreNegocio,
     EstadoPedido estado,
+    MetodoPago metodoPago,
+    String vendedorUsername,
     Instant creadoEn,
     Instant actualizadoEn,
     List<PedidoDetalleResponse> items,
