@@ -30,8 +30,8 @@ Queda escuchando en `http://localhost:8080`.
 | POST   | /api/productos                | ADMINISTRADOR        | Dar de alta un producto (nombre, costo, precio)    |
 | GET    | /api/productos                | autenticado          | Listar productos activos                           |
 | POST   | /api/pedidos                  | autenticado          | Crear pedido (lo usa la app Vendedor)              |
-| GET    | /api/pedidos?estado=RECIBIDO  | ADMINISTRADOR        | Bandeja de pedidos (lo usa Administracion)         |
-| GET    | /api/pedidos/mios              | VENDEDOR             | Pedidos levantados por el vendedor autenticado    |
+| GET    | /api/pedidos?desde=&hasta=&estado=  | ADMINISTRADOR | Bandeja de pedidos, acotada a un rango de fechas |
+| GET    | /api/pedidos/mios?desde=&hasta=      | VENDEDOR      | Pedidos del vendedor autenticado, acotados a un rango de fechas |
 | PATCH  | /api/pedidos/{id}/estado      | ADMINISTRADOR        | Avanzar el estatus del pedido (y/o fijar metodoPago) |
 | GET    | /api/pedidos/totales-hoy      | ADMINISTRADOR        | Ventas, costos y ganancia del dia                  |
 
@@ -70,6 +70,20 @@ el estado nuevo es `ENTREGADO_Y_PAGADO` y el pedido no tiene metodo de
 pago (ni ya guardado ni en esta misma peticion), el backend responde
 400 — es obligatorio saber cómo se cobró antes de marcarlo como pagado.
 Esto solo guarda el dato: no se procesa ningún cobro ni transferencia real.
+
+## Bandeja y "Mis pedidos" por rango de fechas
+
+`GET /api/pedidos` y `GET /api/pedidos/mios` ya no traen todo el historial:
+`desde` y `hasta` son obligatorios (formato ISO-8601, ej.
+`2026-08-30T06:00:00Z`) y filtran por `creadoEn`. Esto evita que la
+consulta se vuelva cada vez más lenta conforme crece la cantidad de
+pedidos — la app siempre manda por defecto el rango de "hoy", y deja
+elegir otro día o un rango más amplio desde la pantalla. El rango máximo
+permitido es un año (`hasta - desde <= 366 días`); si se manda un rango
+mayor, o si falta alguno de los dos parámetros, el backend responde 400.
+
+`GET /api/pedidos` sigue aceptando `estado` como filtro opcional dentro
+de ese rango.
 
 ## Tiempo real
 

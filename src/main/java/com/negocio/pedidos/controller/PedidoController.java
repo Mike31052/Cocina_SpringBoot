@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,17 +27,27 @@ public class PedidoController {
         return pedidoService.crearPedido(request);
     }
 
-    // Usado por la app de Administracion para la bandeja en vivo.
-    // ?estado=RECIBIDO filtra; sin parametro trae todos, mas recientes primero.
+    // Usado por la app de Administracion para la bandeja. desde/hasta son
+    // obligatorios (el front por defecto manda el rango de "hoy") para no
+    // traer cada vez mas registros conforme crece el historial; estado es
+    // opcional para filtrar dentro de ese rango.
     @GetMapping
-    public List<PedidoResponse> listar(@RequestParam(required = false) EstadoPedido estado) {
-        return pedidoService.bandeja(estado);
+    public List<PedidoResponse> listar(
+        @RequestParam Instant desde,
+        @RequestParam Instant hasta,
+        @RequestParam(required = false) EstadoPedido estado
+    ) {
+        return pedidoService.bandeja(estado, desde, hasta);
     }
 
-    // Usado por la app del Vendedor para ver los pedidos que el mismo levanto.
+    // Usado por la app del Vendedor para ver los pedidos que el mismo
+    // levanto, tambien acotado a un rango de fechas.
     @GetMapping("/mios")
-    public List<PedidoResponse> misPedidos() {
-        return pedidoService.misPedidos();
+    public List<PedidoResponse> misPedidos(
+        @RequestParam Instant desde,
+        @RequestParam Instant hasta
+    ) {
+        return pedidoService.misPedidos(desde, hasta);
     }
 
     @PatchMapping("/{id}/estado")

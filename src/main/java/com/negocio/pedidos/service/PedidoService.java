@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -105,26 +106,45 @@ public class PedidoService {
     }
 
     @Transactional(readOnly = true)
-    public List<PedidoResponse> bandeja(EstadoPedido estado) {
+    public List<PedidoResponse> bandeja(EstadoPedido estado, Instant desde, Instant hasta) {
+        validarRango(desde, hasta);
+
         List<Pedido> pedidos = (estado == null)
-            ? pedidoRepository.findAllByOrderByCreadoEnDesc()
-            : pedidoRepository.findByEstadoOrderByCreadoEnDesc(estado);
+            ? pedidoRepository.findByCreadoEnBetweenOrderByCreadoEnDesc(desde, hasta)
+            : pedidoRepository.findByEstadoAndCreadoEnBetweenOrderByCreadoEnDesc(estado, desde, hasta);
 
         return pedidos.stream().map(this::aRespuesta).toList();
     }
 
     /**
-     * Pedidos levantados por el vendedor autenticado (pantalla "Mis pedidos").
+     * Pedidos levantados por el vendedor autenticado (pantalla "Mis pedidos"),
+     * acotados a un rango de fechas por la misma razon que la bandeja.
      */
     @Transactional(readOnly = true)
-    public List<PedidoResponse> misPedidos() {
+    public List<PedidoResponse> misPedidos(Instant desde, Instant hasta) {
+        validarRango(desde, hasta);
+
         Usuario usuario = usuarioAutenticadoOrNull();
         if (usuario == null) {
             return List.of();
         }
-        return pedidoRepository.findByCreadoPorOrderByCreadoEnDesc(usuario).stream()
+        return pedidoRepository.findByCreadoPorAndCreadoEnBetweenOrderByCreadoEnDesc(usuario, desde, hasta).stream()
             .map(this::aRespuesta)
             .toList();
+    }
+
+    private static final long RANGO_MAXIMO_DIAS = 366;
+
+    private void validarRango(Instant desde, Instant hasta) {
+        if (desde == null || hasta == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes indicar 'desde' y 'hasta'.");
+        }
+        if (hasta.isBefore(desde)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'hasta' no puede ser anterior a 'desde'.");
+        }
+        if (Duration.between(desde, hasta).toDays() > RANGO_MAXIMO_DIAS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rango de fechas es demasiado amplio (máximo un año).");
+        }
     }
 
     private Usuario usuarioAutenticadoOrNull() {

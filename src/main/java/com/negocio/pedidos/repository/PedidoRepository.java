@@ -16,14 +16,21 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     // un pedido con este id generado en el celular.
     Optional<Pedido> findByIdLocalCelular(UUID idLocalCelular);
 
-    List<Pedido> findAllByOrderByCreadoEnDesc();
+    // Bandeja de Administracion: siempre acotada a un rango de fechas
+    // (por defecto "hoy", pero puede ser cualquier rango) para no traer
+    // cada vez mas registros conforme crece el historial.
+    List<Pedido> findByCreadoEnBetweenOrderByCreadoEnDesc(Instant desde, Instant hasta);
 
-    List<Pedido> findByEstadoOrderByCreadoEnDesc(EstadoPedido estado);
+    List<Pedido> findByEstadoAndCreadoEnBetweenOrderByCreadoEnDesc(
+        EstadoPedido estado, Instant desde, Instant hasta
+    );
 
     List<Pedido> findByEstadoAndActualizadoEnBetween(
         EstadoPedido estado, Instant desde, Instant hasta
     );
 
-    // Usado por la pantalla "Mis pedidos" del vendedor.
-    List<Pedido> findByCreadoPorOrderByCreadoEnDesc(Usuario creadoPor);
+    // "Mis pedidos" del vendedor: mismo criterio, acotado por fecha.
+    List<Pedido> findByCreadoPorAndCreadoEnBetweenOrderByCreadoEnDesc(
+        Usuario creadoPor, Instant desde, Instant hasta
+    );
 }
