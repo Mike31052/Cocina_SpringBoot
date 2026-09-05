@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -32,6 +33,9 @@ public class PedidoService {
     private final NegocioRepository negocioRepository;
     private final ProductoRepository productoRepository;
     private final NotificacionService notificacionService;
+
+    @Value("${app.zona-horaria:America/Mexico_City}")
+    private String zonaHoraria;
 
     /**
      * Crea un pedido, o si idLocalCelular ya existe, regresa el que ya
@@ -110,8 +114,8 @@ public class PedidoService {
         validarRango(desde, hasta);
 
         List<Pedido> pedidos = (estado == null)
-            ? pedidoRepository.findByCreadoEnBetweenOrderByCreadoEnDesc(desde, hasta)
-            : pedidoRepository.findByEstadoAndCreadoEnBetweenOrderByCreadoEnDesc(estado, desde, hasta);
+            ? pedidoRepository.findByCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnDesc(desde, hasta)
+            : pedidoRepository.findByEstadoAndCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnDesc(estado, desde, hasta);
 
         return pedidos.stream().map(this::aRespuesta).toList();
     }
@@ -128,7 +132,7 @@ public class PedidoService {
         if (usuario == null) {
             return List.of();
         }
-        return pedidoRepository.findByCreadoPorAndCreadoEnBetweenOrderByCreadoEnDesc(usuario, desde, hasta).stream()
+        return pedidoRepository.findByCreadoPorAndCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnDesc(usuario, desde, hasta).stream()
             .map(this::aRespuesta)
             .toList();
     }
@@ -157,12 +161,13 @@ public class PedidoService {
 
     @Transactional(readOnly = true)
     public TotalesDelDiaResponse totalesDelDia() {
-        ZoneId zona = ZoneOffset.UTC; 
-        Instant inicioDelDia = LocalDate.now(zona).atStartOfDay(zona).toInstant();
-        Instant ahora = Instant.now();
+        ZoneId zona = ZoneId.of(zonaHoraria);
+        LocalDate hoy = LocalDate.now(zona);
+        Instant inicioDelDia = hoy.atStartOfDay(zona).toInstant();
+        Instant inicioDelDiaSiguiente = hoy.plusDays(1).atStartOfDay(zona).toInstant();
 
-        List<Pedido> cobrados = pedidoRepository.findByEstadoAndActualizadoEnBetween(
-            EstadoPedido.ENTREGADO_Y_PAGADO, inicioDelDia, ahora
+        List<Pedido> cobrados = pedidoRepository.findByEstadoAndActualizadoEnGreaterThanEqualAndActualizadoEnLessThan(
+            EstadoPedido.ENTREGADO_Y_PAGADO, inicioDelDia, inicioDelDiaSiguiente
         );
 
         BigDecimal ventas = BigDecimal.ZERO;

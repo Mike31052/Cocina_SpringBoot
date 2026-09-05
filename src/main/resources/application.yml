@@ -16,10 +16,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: UTC
     open-in-view: false
 
 server:
   port: ${PORT:8080}
+
+app:
+  zona-horaria: ${ZONA_HORARIA:America/Mexico_City}
 
 jwt:
   # En produccion define JWT_SECRETO como variable de entorno (Railway,

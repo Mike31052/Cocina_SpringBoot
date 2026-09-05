@@ -19,18 +19,20 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     // Bandeja de Administracion: siempre acotada a un rango de fechas
     // (por defecto "hoy", pero puede ser cualquier rango) para no traer
     // cada vez mas registros conforme crece el historial.
-    List<Pedido> findByCreadoEnBetweenOrderByCreadoEnDesc(Instant desde, Instant hasta);
+    List<Pedido> findByCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnDesc(
+        Instant desde, Instant hasta
+    );
 
-    List<Pedido> findByEstadoAndCreadoEnBetweenOrderByCreadoEnDesc(
+    List<Pedido> findByEstadoAndCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnDesc(
         EstadoPedido estado, Instant desde, Instant hasta
     );
 
-    List<Pedido> findByEstadoAndActualizadoEnBetween(
+    List<Pedido> findByEstadoAndActualizadoEnGreaterThanEqualAndActualizadoEnLessThan(
         EstadoPedido estado, Instant desde, Instant hasta
     );
 
     // "Mis pedidos" del vendedor: mismo criterio, acotado por fecha.
-    List<Pedido> findByCreadoPorAndCreadoEnBetweenOrderByCreadoEnDesc(
+    List<Pedido> findByCreadoPorAndCreadoEnGreaterThanEqualAndCreadoEnLessThanOrderByCreadoEnDesc(
         Usuario creadoPor, Instant desde, Instant hasta
     );
 }
